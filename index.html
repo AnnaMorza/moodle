@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Заметки к материалам курса — кликабельный прототип</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#edf1ea;
+  --panel:#ffffff;
+  --ink:#2d342e;
+  --muted:#94a096;
+  --line:#e3e9e1;
+  --green:#43a45a;
+  --green-deep:#2e7d43;
+  --green-soft:#e5f2e6;
+  --green-tint:#f2f8f1;
+  --danger:#d9534f;
+  --shadow:0 14px 34px rgba(46,73,50,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:var(--canvas);
+  color:var(--ink);
+  display:flex;
+  gap:26px;
+  padding:22px;
+  overflow:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:8px}
+
+/* ---------- Sidebar: prototype map ---------- */
+.map{
+  width:295px;min-width:255px;
+  background:var(--panel);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  padding:20px 16px;
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:4px;
+}
+.map h1{font-size:15px;font-weight:800;letter-spacing:.01em;padding:0 8px 2px}
+.map .sub{font-size:11.5px;color:var(--muted);padding:0 8px 10px;line-height:1.45;border-bottom:1px solid var(--line);margin-bottom:8px}
+.grp{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;padding:12px 8px 5px}
+.nav{
+  display:flex;align-items:center;gap:8px;width:100%;
+  text-align:left;font-size:12.8px;font-weight:600;color:#48524a;
+  padding:8px 10px;border-radius:10px;transition:background .12s;
+}
+.nav:hover{background:var(--green-tint)}
+.nav.active{background:var(--green-soft);color:var(--green-deep);font-weight:800}
+.nav .dot{width:5px;height:5px;border-radius:50%;background:#c9d5c9;flex:none}
+.nav.active .dot{background:var(--green)}
+.legend{margin-top:14px;border-top:1px solid var(--line);padding:12px 8px 2px;display:flex;flex-direction:column;gap:9px}
+.legend h2{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.lg{display:flex;align-items:center;gap:9px;font-size:12px;color:#4c564e}
+.lg svg{flex:none}
+
+/* ---------- Stage & phone ---------- */
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-width:0}
+.phone{
+  width:378px;height:min(790px,calc(100vh - 96px));
+  background:var(--panel);
+  border:1px solid #dee5db;
+  border-radius:44px;
+  box-shadow:var(--shadow);
+  padding:12px;
+  flex:none;
+}
+.screen{
+  height:100%;border-radius:34px;background:#fff;
+  overflow-y:auto;overflow-x:hidden;
+  padding:18px 18px 22px;
+  display:flex;flex-direction:column;gap:14px;
+  scrollbar-width:thin;
+}
+.screen.tint{background:var(--green-tint)}
+.screen.enter{animation:enter .18s ease-out}
+@keyframes enter{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.screen.enter{animation:none}}
+.caption{font-size:12.5px;color:var(--muted);font-weight:600;text-align:center;max-width:378px}
+
+/* ---------- In-phone components ---------- */
+.topbar{display:flex;align-items:flex-start;gap:8px}
+.tb-title{flex:1;text-align:center;font-size:14.5px;font-weight:800;line-height:1.35;padding-top:5px}
+.tb-sub{text-align:center;font-size:12px;color:var(--muted);font-weight:600;margin-top:-8px}
+.icobtn{width:30px;height:30px;flex:none;border-radius:9px;display:grid;place-items:center;color:#5a655c}
+.icobtn:hover{background:var(--green-soft);color:var(--green-deep)}
+.icobtn.ghost{visibility:hidden}
+.icobtn.danger:hover{background:#fbecec;color:var(--danger)}
+
+.seclabel{font-size:12px;font-weight:800;color:#5a655c;letter-spacing:.02em}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.screen.tint .card{border-color:#dcead9}
+.empty{border-style:dashed;color:var(--muted);font-size:12.5px;text-align:center;padding:20px 12px;border-radius:14px;border:1.5px dashed var(--line)}
+
+.favcard{display:flex;align-items:center;gap:10px;cursor:pointer}
+.favcard:hover{border-color:#cfe2cd}
+.favcard .t{flex:1;font-size:12.5px;font-weight:700;line-height:1.35}
+
+.mrow{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 12px}
+.mrow .main{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left}
+.mrow .main .nm{font-size:13px;font-weight:800}
+.mrow .main .dt{font-size:11px;color:var(--muted);font-weight:600}
+.mrow.link:hover{border-color:#cfe2cd;background:var(--green-tint)}
+.mrow .main.static{cursor:default}
+.nested{margin:-4px 0 2px 26px;display:flex;flex-direction:column;gap:7px;border-left:2px solid var(--green-soft);padding-left:10px}
+
+.nicon{width:23px;height:23px;flex:none;border-radius:7px;background:var(--green);color:#fff;font-weight:800;font-size:11.5px;display:grid;place-items:center}
+.doc{color:#8fa591;flex:none}
+.star{color:#c7d3c7;flex:none;padding:3px;border-radius:8px;transition:transform .12s}
+.star:hover{transform:scale(1.15)}
+.star.on{color:var(--green)}
+.chev{color:#aab6ab;flex:none}
+.exp{color:#aab6ab;flex:none;padding:4px;border-radius:8px;transition:transform .15s}
+.exp:hover{background:var(--green-soft);color:var(--green-deep)}
+.exp.open{transform:rotate(90deg)}
+
+.nrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 12px}
+.nrow:hover{border-color:#cfe2cd;background:var(--green-tint)}
+.screen.tint .nrow{border-color:#dcead9}
+.nrow .nb{flex:1;min-width:0}
+.nrow .nm{font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrow .pv{font-size:11px;color:var(--muted);font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.ghead{display:flex;align-items:center;gap:7px;width:100%;text-align:left;padding:2px 2px}
+.ghead .gt{font-size:13px;font-weight:800;flex:1;display:flex;align-items:center;gap:7px}
+.ghead:hover .gt{color:var(--green-deep)}
+
+.btn{display:block;width:100%;background:var(--green);color:#fff;border-radius:13px;padding:12px;font-weight:800;font-size:13.5px;text-align:center;transition:background .12s}
+.btn:hover{background:var(--green-deep)}
+.btn.ghost{background:var(--green-soft);color:var(--green-deep)}
+.btn.ghost:hover{background:#d8ecd9}
+
+.fld{width:100%;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font:inherit;font-size:13px;font-weight:600;background:#fff;color:var(--ink)}
+.fld::placeholder{color:#b3bfb4;font-weight:600}
+.fld:focus{outline:none;border-color:var(--green)}
+textarea.fld{min-height:150px;resize:vertical;line-height:1.55;font-weight:500}
+select.fld{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a096' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+.flabel{font-size:12px;font-weight:800;color:#5a655c}
+
+.tbar{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff;width:max-content}
+.tbar button{width:27px;height:27px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#5a655c}
+.tbar button:hover,.tbar button.on{background:var(--green-soft);color:var(--green-deep)}
+.tbar .u{text-decoration:underline}.tbar .i{font-style:italic}
+
+.meta{display:flex;align-items:flex-start;gap:8px}
+.meta .lines{flex:1;font-size:11.5px;color:var(--muted);font-weight:700;line-height:1.7}
+.viewbody{font-size:13px;line-height:1.6;font-weight:500}
+.linkchip{display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;background:var(--green-soft);color:var(--green-deep);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.slideref{display:flex;align-items:center;gap:8px;background:var(--green-tint);border:1px solid var(--green-soft);color:var(--green-deep);border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700}
+.screen.tint .slideref{background:#fff}
+.saved{display:flex;align-items:center;gap:7px;color:var(--green-deep);font-size:12.5px;font-weight:800;visibility:hidden}
+.saved.show{visibility:visible}
+
+.toolrow{display:flex;align-items:center;gap:7px}
+.tool{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;color:#5a655c}
+.tool:hover{border-color:var(--green);color:var(--green-deep);background:var(--green-tint)}
+.tool .nicon{width:19px;height:19px;font-size:10px;border-radius:6px}
+.toolchip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;background:var(--green-soft);color:var(--green-deep);font-size:12px;font-weight:800}
+.toolchip:hover{background:#d8ecd9}
+.linkbtn{margin-left:auto;font-size:12px;font-weight:800;color:var(--green-deep);text-decoration:underline;text-underline-offset:2px;padding:6px}
+.tip{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.5;background:var(--green-tint);border-radius:10px;padding:9px 11px}
+
+.slides{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.slides.pick{grid-template-columns:repeat(3,1fr);gap:10px}
+.slide{position:relative;background:#fff;border:1px solid var(--line);border-radius:11px;aspect-ratio:4/3.1;padding:9px 9px 16px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 2px rgba(46,73,50,.05)}
+.slide .sh{height:7px;width:58%;border-radius:3px;background:#cfe4cf}
+.slide .sl{height:4.5px;border-radius:2px;background:#e9ede8}
+.slide .w9{width:92%}.slide .w7{width:72%}.slide .w5{width:52%}
+.slide .snum{position:absolute;bottom:4px;right:8px;font-size:9.5px;font-weight:800;color:#b3bfb4}
+.smark{font-size:8.5px;line-height:1.15;text-align:left;width:max-content;max-width:100%;background:var(--green-soft);color:var(--green-deep);border-radius:4px;padding:2px 4px;font-weight:700;text-decoration:underline}
+.smark:hover{background:#cde6cf}
+.chk{position:absolute;top:7px;right:7px;width:17px;height:17px;border-radius:6px;border:1.6px solid #c2cfc2;background:#fff;display:grid;place-items:center;color:#fff;padding:0}
+.chk.on{background:var(--green);border-color:var(--green)}
+.slide.pickable{cursor:pointer}
+.slide.pickable:hover{border-color:var(--green)}
+.pagecount{text-align:center;font-size:12px;font-weight:800;color:var(--muted)}
+.grow{flex:1}
+.center{text-align:center}
+.footer-note{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);justify-content:space-between}
+
+@media (max-width:860px){
+  body{flex-direction:column;overflow:auto;align-items:center}
+  .map{width:100%;max-width:520px;max-height:34vh}
+  .phone{height:720px}
+}
+</style>
+</head>
+<body>
+
+<aside class="map" id="map"></aside>
+
+<main class="stage">
+  <div class="phone"><div class="screen" id="screen"></div></div>
+  <div class="caption" id="caption"></div>
+</main>
+
+<script>
+/* ============ Icons ============ */
+const I = {
+  chevL:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+  chevR:'<svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  chevRsm:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  chevD:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  dots:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>',
+  pencil:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+  trash:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>',
+  chain:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
+  star:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6 15 8.7l6.7 1-4.9 4.7 1.2 6.7-6-3.2-6 3.2 1.2-6.7L2.3 9.7l6.7-1z"/></svg>',
+  check:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  doc:'<svg class="doc" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>',
+  close:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ============ Data (по содержимому макетов) ============ */
+const data = {
+  weeks: [
+    {id:'w1', nm:'Week 1', dt:'20 January 2024', title:'Lecture Week 1 (Part I): Introduction to HTTP'},
+    {id:'w2', nm:'Week 2', dt:'27 January 2024', title:'Lecture Week 2 (Part I): HTTP Methods'},
+    {id:'w3', nm:'Week 3', dt:'3 February 2024',  title:'Lecture Week 3 (Part I): HTTP and FTP Protocols'},
+    {id:'w4', nm:'Week 4', dt:'10 February 2024', title:'Lecture Week 4 (Part I): FTP in Practice'}
+  ],
+  textNotes: [
+    {id:'t1', nm:'Connection establishment in HTTP', created:'2 days ago', slide:'7',
+     body:'The HTTP protocol is connectionless, but it uses TCP as the transport protocol.',
+     link:'HTTP про протоколы', ref:'15, 17, 19', slides:[15,17,19]},
+    {id:'t2', nm:'HTTP/FTP Commands', created:'3 days ago', slide:'12',
+     body:'Основные команды: GET, POST, PUT / USER, PASS, RETR, STOR.',
+     link:'HTTP/FTP команды', ref:'15, 17, 19', slides:[15,17,19]}
+  ],
+  matNotes: [
+    {id:'m1', nm:'Про конфигурирование сервера…', created:'3 days ago', slides:[3,5,9],
+     body:'Для конфигурирования сервера FTP нужно также знать структуру файловой системы и права доступа.'},
+    {id:'m2', nm:'HTTP/FTP over view', created:'4 days ago', slides:[11,13],
+     body:'Обзор различий HTTP и FTP: модель «запрос — ответ», управление соединением, передача данных.'},
+    {id:'m3', nm:'HTTP Response codes tones type', created:'5 days ago', slides:[18,21,23],
+     body:'Status codes are divided into 5 classes. Remember the most common ones!'}
+  ]
+};
+
+const state = {
+  screen:'course', param:null,
+  week:'w3',                                   // открытая презентация
+  favs:new Set(),
+  expandW3:false,
+  groups:{text:true, mat:true},
+  pick:new Set(),
+  editCtx:null,                                // {type:'t'|'m', id}
+  selText:{text:'HTTP про протоколы', slide:2},// выделенный фрагмент на слайде
+  matOrigin:'notes',                           // откуда открыта material note
+  matDraft:{slide:'Slide 15', body:''}
+};
+
+const noteById = (type,id)=> (type==='t'?data.textNotes:data.matNotes).find(n=>n.id===id);
+const weekById = id => data.weeks.find(w=>w.id===id);
+const wkTitle   = () => weekById(state.week).title;
+const wkTitleBr = () => wkTitle().replace(': ', ':<br>');
+
+/* ============ Small builders ============ */
+function topbar(backGo, title, opts={}){
+  const back = backGo
+    ? '<button class="icobtn" data-go="'+backGo+'"'+(opts.backParam?' data-param="'+opts.backParam+'"':'')+' aria-label="Назад">'+I.chevL+'</button>'
+    : '<span class="icobtn ghost"></span>';
+  return '<div class="topbar">'+back+'<div class="tb-title">'+title+'</div>'
+       + '<span class="icobtn ghost"></span></div>'
+       + (opts.sub ? '<div class="tb-sub">'+opts.sub+'</div>' : '');
+}
+
+function toolbarFmt(){
+  return '<div class="tbar" role="toolbar" aria-label="Форматирование">'
+    + '<button title="Полужирный"><b>B</b></button>'
+    + '<button class="i" title="Курсив">I</button>'
+    + '<button class="u" title="Подчёркнутый">U</button>'
+    + '<button title="Список">≡</button>'
+    + '<button title="Ссылка">'+I.chain+'</button>'
+    + '</div>';
+}
+
+function slideThumb(n, opts={}){
+  const lines = (n%3===0)
+    ? '<span class="sl w9"></span><span class="sl w7"></span><span class="sl w9"></span>'
+    : (n%3===1)
+      ? '<span class="sl w7"></span><span class="sl w9"></span><span class="sl w5"></span>'
+      : '<span class="sl w9"></span><span class="sl w5"></span>';
+  const mark = opts.mark ? '<button class="smark" data-act="sel-text" data-text="'+opts.mark+'" data-slide="'+n+'">'+opts.mark+'</button>' : '';
+  const chk  = opts.pick ? '<span class="chk'+(state.pick.has(n)?' on':'')+'">'+(state.pick.has(n)?I.check:'')+'</span>' : '';
+  const attrs = opts.pick ? ' class="slide pickable" role="checkbox" tabindex="0" aria-checked="'+state.pick.has(n)+'" data-act="pick" data-n="'+n+'"' : ' class="slide"';
+  return '<div'+attrs+'><span class="sh"></span>'+lines+mark+chk+'<span class="snum">'+n+'</span></div>';
+}
+
+function noteRow(n, type){
+  const go = type==='t' ? 'note-view' : 'mat-view';
+  const pv = type==='t' ? n.body : 'Слайды с номерами '+n.slides.join(', ');
+  return '<button class="nrow" data-go="'+go+'" data-param="'+n.id+'">'
+    + '<span class="nicon">'+(type==='t'?'T':'M')+'</span>'
+    + '<div class="nb"><div class="nm">'+n.nm+'</div><div class="pv">'+pv+'</div></div>'
+    + I.chevR + '</button>';
+}
+
+/* ============ Screens ============ */
+function renderCourse(){
+  const favs = [...state.favs].map(weekById);
+  const favHtml = favs.length
+    ? favs.map(w =>
+        '<div class="card favcard" data-act="open-week" data-id="'+w.id+'">'
+        + I.doc + '<div class="t">'+w.title+'</div>'
+        + '<button class="star on" data-act="star" data-id="'+w.id+'" aria-label="Убрать из избранного">'+I.star+'</button>'
+        + '</div>').join('')
+      + '<button class="linkbtn" style="margin:0" data-go="favorites">All favorites ('+favs.length+' files) →</button>'
+    : '<div class="empty">No favorites yet<br>Отметьте материал звёздочкой ★</div>';
+
+  const rows = data.weeks.map(w=>{
+    const isW3 = w.id==='w3';
+    const star = '<button class="star'+(state.favs.has(w.id)?' on':'')+'" data-act="star" data-id="'+w.id+'" aria-label="В избранное">'+I.star+'</button>';
+    const main = '<button class="main" data-act="open-week" data-id="'+w.id+'"><span class="nm">'+w.nm+'</span><span class="dt">'+w.dt+'</span></button>';
+    const tail = isW3
+      ? '<button class="exp'+(state.expandW3?' open':'')+'" data-act="expand" aria-label="Заметки в материале">'+I.chevRsm+'</button>'
+      : I.chevR;
+    const nested = (isW3 && state.expandW3)
+      ? '<div class="nested">'+ data.matNotes.map(n=>
+          '<button class="nrow" data-go="mat-view" data-param="'+n.id+'">'
+          + '<span class="nicon">M</span><div class="nb"><div class="nm">'+n.nm+'</div>'
+          + '<div class="pv">Слайды: '+n.slides.join(', ')+'</div></div>'+I.chevR+'</button>').join('')
+        + '<button class="btn ghost" data-go="mat-panel" style="padding:9px">Material notes ('+data.matNotes.length+')</button></div>'
+      : '';
+    return '<div class="mrow link">'+I.doc+main+star+tail+'</div>'+nested;
+  }).join('');
+
+  return topbar(null,'Course')
+    + '<div class="seclabel">Favorites</div>' + favHtml
+    + '<div class="seclabel" style="margin-top:4px">Material</div>' + rows;
+}
+
+function renderFavorites(){
+  const favs = [...state.favs].map(weekById);
+  const list = favs.length
+    ? favs.map(w =>
+        '<div class="card favcard" data-act="open-week" data-id="'+w.id+'">'
+        + '<span class="nicon" style="background:var(--green-soft);color:var(--green-deep)">'+(w.id==='w3'?'M':'T')+'</span>'
+        + '<div class="t">'+w.title+'</div>'
+        + '<button class="icobtn" data-act="star" data-id="'+w.id+'" aria-label="Убрать">'+I.close+'</button>'
+        + '</div>').join('')
+    : '<div class="empty">No favorites yet</div>';
+  return topbar('course','Course',{sub:'All favorites ('+favs.length+' files)'}) + list;
+}
+
+function renderPresentation(){
+  const marks = {2:'HTTP про протоколы', 4:'FTP команды'};
+  const slides = [1,2,3,4,5,6].map(n=>slideThumb(n,{mark:marks[n]})).join('');
+  return topbar('course', wkTitleBr())
+    + '<div class="toolrow">'
+    +   '<button class="tool" data-go="note-new" title="Текстовая заметка"><span class="nicon">T</span></button>'
+    +   '<button class="tool" data-go="mat-new" title="Заметка к слайдам"><span class="nicon">M</span></button>'
+    +   '<button class="toolchip" data-go="note-new">'+I.pencil+' Presentation</button>'
+    +   '<button class="linkbtn" data-go="notes">All notes</button>'
+    + '</div>'
+    + '<div class="tip">Выделение текста: нажмите на подсвеченный фрагмент на слайде 2 или 4 — создастся заметка со ссылкой на этот текст.</div>'
+    + '<div class="slides">'+slides+'</div>'
+    + '<div class="pagecount">24</div>';
+}
+
+function renderNotes(){
+  const tOpen = state.groups.text, mOpen = state.groups.mat;
+  const tItems = tOpen ? data.textNotes.map(n=>noteRow(n,'t')).join('') : '';
+  const mItems = mOpen ? data.matNotes.map(n=>noteRow(n,'m')).join('') : '';
+  return topbar('presentation', wkTitleBr(), {sub:'All notes'})
+    + '<button class="ghead" data-act="group" data-g="text" aria-expanded="'+tOpen+'">'
+    +   '<span class="nicon">T</span><span class="gt">Text notes ('+data.textNotes.length+')</span>'
+    +   (tOpen?I.chevD:I.chevRsm) + '</button>' + tItems
+    + '<button class="ghead" data-act="group" data-g="mat" aria-expanded="'+mOpen+'">'
+    +   '<span class="nicon">M</span><span class="gt">Material notes ('+data.matNotes.length+') <span class="star on" style="padding:0">'+I.star+'</span></span>'
+    +   (mOpen?I.chevD:I.chevRsm) + '</button>' + mItems
+    + '<div class="grow"></div>'
+    + '<button class="btn" data-go="note-new">Add new note</button>';
+}
+
+function metaBlock(n, type){
+  const where = type==='t' ? 'On slide: '+n.slide : 'On slides: '+n.slides.join(', ');
+  return '<div class="meta"><div class="lines">Created: '+n.created+'<br>'+where+'</div>'
+    + '<button class="icobtn" data-act="edit-start" data-type="'+type+'" data-id="'+n.id+'" aria-label="Редактировать">'+I.pencil+'</button>'
+    + '<button class="icobtn danger" data-act="del" data-type="'+type+'" data-id="'+n.id+'" aria-label="Удалить">'+I.trash+'</button></div>';
+}
+
+function renderNoteView(){
+  const n = noteById('t', state.param) || data.textNotes[0];
+  state.param = n.id;
+  return topbar('notes', n.nm)
+    + metaBlock(n,'t')
+    + '<div class="card viewbody">'+n.body+'</div>'
+    + (n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
+    + '<div class="slideref">'+I.check+' Слайды с номерами '+n.ref+'</div>';
+}
+
+function renderMatView(){
+  const n = noteById('m', state.param) || data.matNotes[0];
+  state.param = n.id;
+  return topbar(state.matOrigin || 'notes', n.nm)
+    + metaBlock(n,'m')
+    + '<div class="card viewbody">'+n.body+'</div>'
+    + '<div class="slideref">'+I.check+' Слайды с номерами '+n.slides.join(', ')+'</div>';
+}
+
+function renderSlidePicker(){
+  const ctx = state.editCtx; if(!ctx) return renderNotes();
+  const n = noteById(ctx.type, ctx.id);
+  const grid = [1,2,3,4,5,6,7,8,9,10,11,12].map(k=>slideThumb(k,{pick:true})).join('');
+  return topbar('note-edit', n.nm, {sub:'Выберите слайды для заметки'})
+    + '<div class="slides pick">'+grid+'</div>'
+    + '<div class="pagecount">Выбрано: <span id="pickCount">'+state.pick.size+'</span> из 24</div>'
+    + '<div class="grow"></div>'
+    + '<button class="btn" data-act="pick-done">Continue</button>';
+}
+
+function renderNoteEdit(){
+  const ctx = state.editCtx; if(!ctx) return renderNotes();
+  const n = noteById(ctx.type, ctx.id);
+  const backGo = ctx.type==='t' ? 'note-view' : 'mat-view';
+  const ref = n.slides.join(', ');
+  return topbar(backGo, n.nm, {backParam:n.id, sub: ctx.type==='m' ? wkTitle() : ''})
+    + '<input class="fld" placeholder="Name..." value="'+n.nm.replace(/"/g,'&quot;')+'" data-bind="nm" data-type="'+ctx.type+'" data-id="'+n.id+'">'
+    + toolbarFmt()
+    + '<textarea class="fld" data-bind="body" data-type="'+ctx.type+'" data-id="'+n.id+'">'+n.body+'</textarea>'
+    + (ctx.type==='t' && n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
+    + '<button class="slideref" data-act="pick-open" style="width:100%;cursor:pointer">'+I.check
+    +   ' Слайды с номерами '+ref+'<span style="margin-left:auto;text-decoration:underline;font-weight:800">изменить</span></button>'
+    + '<div class="saved" id="saved">'+I.check+' Saved</div>'
+    + '<div class="grow"></div>'
+    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Back</button>';
+}
+
+function renderMatPanel(){
+  return topbar('course','Material notes ('+data.matNotes.length+')')
+    + data.matNotes.map(n=>noteRow(n,'m')).join('')
+    + '<div class="grow"></div>'
+    + '<button class="btn" data-go="mat-new">Add new note</button>';
+}
+
+function renderMatNew(){
+  const opts = ['Slide 3','Slide 5','Slide 7','Slide 9','Slide 11','Slide 13','Slide 15','Slide 18','Slide 21','Slide 23']
+    .map(s=>'<option'+(s===state.matDraft.slide?' selected':'')+'>'+s+'</option>').join('');
+  return topbar('mat-panel','New material note',{sub:wkTitle()})
+    + '<label class="flabel" for="mSlides">Select slides</label>'
+    + '<select id="mSlides" class="fld" data-bind="draft-slide">'+opts+'</select>'
+    + '<label class="flabel" for="mNote">Note</label>'
+    + toolbarFmt()
+    + '<textarea id="mNote" class="fld" placeholder="Status codes are divided into 5 classes. Remember the most common ones!" data-bind="draft-body">'+state.matDraft.body+'</textarea>'
+    + '<div class="saved" id="saved">'+I.check+' Saved</div>'
+    + '<div class="grow"></div>'
+    + '<button class="btn" data-act="add-mat">Add new note</button>'
+    + '<button class="btn ghost" data-go="mat-panel">Back</button>';
+}
+
+function editorScreen(kind){ // kind: 'plain' | 'link'
+  const sel = state.selText;
+  return topbar('presentation','New note',{sub:wkTitle()})
+    + '<input class="fld" id="nnName" placeholder="Name...">'
+    + toolbarFmt()
+    + (kind==='link'
+        ? '<span class="linkchip">'+I.chain+' '+sel.text+'</span>'
+          + '<div class="slideref">'+I.check+' Слайд '+sel.slide+'</div>'
+        : '')
+    + '<textarea class="fld" id="nnBody" placeholder="Add a note..."></textarea>'
+    + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
+    + '<div class="grow"></div>'
+    + '<button class="btn" data-act="commit-note" data-kind="'+kind+'">Back</button>';
+}
+
+/* ============ Registry ============ */
+const screens = {
+  'course':       {cap:'Страница курса — избранное и материалы (★ у Week добавляет в Favorites)', render:renderCourse},
+  'favorites':    {cap:'Просмотр избранных — All favorites', render:renderFavorites},
+  'presentation': {cap:'Материал (слайды). T — текстовая заметка, M — к слайдам; клик по подсвеченному тексту создаёт заметку-ссылку', render:renderPresentation},
+  'notes':        {cap:'Все заметки материала — Text notes и Material notes', render:renderNotes},
+  'note-view':    {cap:'Текстовая заметка — просмотр (карандаш открывает редактор)', render:renderNoteView},
+  'mat-view':     {cap:'Заметка к материалу — «назад» вернёт туда, откуда открыли', render:renderMatView},
+  'slide-picker': {cap:'Выбор слайдов — открывается из редактора по кнопке «изменить»', render:renderSlidePicker, tint:true},
+  'note-edit':    {cap:'Редактирование заметки — автосохранение (✓ Saved), слайды меняются по «изменить»', render:renderNoteEdit, tint:true},
+  'mat-panel':    {cap:'Material notes — панель заметок к материалу', render:renderMatPanel},
+  'mat-new':      {cap:'New material note — выбор слайда и текст заметки', render:renderMatNew},
+  'note-new':     {cap:'Заметка по самой презентации — New note', render:()=>editorScreen('plain')},
+  'note-link':    {cap:'Заметка со ссылкой на выделенный текст', render:()=>editorScreen('link')}
+};
+
+/* ============ Sidebar map ============ */
+const MAP = [
+  ['Страница курса', [
+    {t:'Первое открытие курса', s:'course', preset:'first'},
+    {t:'Появились избранные', s:'course', preset:'favs'},
+    {t:'Просмотр избранных', s:'favorites', preset:'favs'},
+    {t:'Избранное и заметки в материале', s:'course', preset:'favnotes'}
+  ]],
+  ['Материал (слайды)', [
+    {t:'Презентация Week 3', s:'presentation', preset:'w3'},
+    {t:'Заметка со ссылкой на текст', s:'note-link', preset:'seltext'},
+    {t:'Заметка по презентации', s:'note-new', preset:'w3'}
+  ]],
+  ['Заметки', [
+    {t:'Все заметки', s:'notes', preset:'w3'},
+    {t:'Текстовая заметка', s:'note-view', p:'t1'},
+    {t:'Редактирование заметки', s:'note-edit', preset:'edit-t1'},
+    {t:'Заметка к материалу', s:'mat-view', p:'m1'},
+    {t:'Material notes (панель)', s:'mat-panel'},
+    {t:'New material note', s:'mat-new'}
+  ]]
+];
+
+function buildMap(){
+  const el = document.getElementById('map');
+  let html = '<h1>Заметки к материалам</h1>'
+    + '<div class="sub">Кликабельный прототип по схеме экранов. Все переходы работают и внутри телефона.</div>';
+  for(const [g,items] of MAP){
+    html += '<div class="grp">'+g+'</div>';
+    for(const it of items){
+      html += '<button class="nav" data-nav="'+it.s+'"'
+        + (it.p?' data-param="'+it.p+'"':'')
+        + (it.preset?' data-preset="'+it.preset+'"':'')
+        + '><span class="dot"></span>'+it.t+'</button>';
+    }
+  }
+  html += '<div class="legend"><h2>Условные обозначения</h2>'
+    + '<div class="lg"><span class="nicon">T</span> текстовая заметка</div>'
+    + '<div class="lg"><span class="nicon">M</span> заметка к материалу (слайдам)</div>'
+    + '<div class="lg"><span style="color:var(--green-deep)">'+I.chain+'</span> ссылка на текст</div>'
+    + '<div class="lg"><span class="star on" style="padding:0">'+I.star+'</span> избранное</div>'
+    + '</div>';
+  el.innerHTML = html;
+}
+
+/* ============ Router & actions ============ */
+function go(screen, param){
+  if(!screens[screen]) return;
+  if(screen==='mat-view' && ['notes','mat-panel','course','favorites'].includes(state.screen)){
+    state.matOrigin = state.screen;   // «назад» вернёт именно сюда
+  }
+  state.screen = screen;
+  if(param !== undefined) state.param = param;
+  render();
+}
+
+function render(){
+  const scr = screens[state.screen];
+  const el = document.getElementById('screen');
+  el.classList.toggle('tint', !!scr.tint);
+  el.innerHTML = scr.render();
+  el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+  el.scrollTop = 0;
+  document.getElementById('caption').textContent = scr.cap;
+  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active', b.dataset.nav===state.screen));
+}
+
+function applyPreset(p){
+  if(p==='first'){ state.favs.clear(); state.expandW3=false; }
+  if(p==='favs'){ state.favs = new Set(['w1','w3']); state.expandW3=false; }
+  if(p==='favnotes'){ state.favs = new Set(['w1','w3']); state.expandW3=true; }
+  if(p==='w3'){ state.week='w3'; }
+  if(p==='seltext'){ state.week='w3'; state.selText={text:'HTTP про протоколы', slide:2}; }
+  if(p==='edit-t1'){ state.week='w3'; state.editCtx={type:'t', id:'t1'}; state.param='t1'; }
+}
+
+function flashSaved(){
+  const s = document.getElementById('saved');
+  if(!s) return;
+  s.classList.add('show');
+  clearTimeout(flashSaved.tm);
+  flashSaved.tm = setTimeout(()=>s.classList.remove('show'), 1600);
+}
+
+function handleAct(el){
+  const a = el.dataset.act;
+  if(a==='star'){
+    const id = el.dataset.id;
+    state.favs.has(id) ? state.favs.delete(id) : state.favs.add(id);
+    render();
+  }
+  else if(a==='expand'){ state.expandW3 = !state.expandW3; render(); }
+  else if(a==='group'){ const g = el.dataset.g; state.groups[g] = !state.groups[g]; render(); }
+  else if(a==='open-week'){ state.week = el.dataset.id; go('presentation'); }
+  else if(a==='sel-text'){
+    state.selText = {text: el.dataset.text, slide: +el.dataset.slide};
+    go('note-link');
+  }
+  else if(a==='edit-start'){
+    state.editCtx = {type: el.dataset.type, id: el.dataset.id};
+    go('note-edit');                       // сразу редактор, без страницы выбора слайдов
+  }
+  else if(a==='pick-open'){
+    const {type,id} = state.editCtx;
+    state.pick = new Set(noteById(type,id).slides);
+    go('slide-picker');
+  }
+  else if(a==='pick'){
+    const n = +el.dataset.n;
+    state.pick.has(n) ? state.pick.delete(n) : state.pick.add(n);
+    render();
+  }
+  else if(a==='pick-done'){
+    const {type,id} = state.editCtx;
+    const n = noteById(type,id);
+    const arr = [...state.pick].sort((x,y)=>x-y);
+    n.slides = arr;
+    n.ref = arr.join(', ');
+    go('note-edit');
+  }
+  else if(a==='del'){
+    const type = el.dataset.type, id = el.dataset.id;
+    if(type==='t') data.textNotes = data.textNotes.filter(n=>n.id!==id);
+    else data.matNotes = data.matNotes.filter(n=>n.id!==id);
+    go(type==='t' ? 'notes' : (state.matOrigin || 'notes'));
+  }
+  else if(a==='add-mat'){
+    const body = state.matDraft.body.trim();
+    data.matNotes.push({
+      id:'m'+Date.now(),
+      nm: body ? (body.length>34 ? body.slice(0,34)+'…' : body) : 'New material note',
+      created:'just now',
+      slides:[ +state.matDraft.slide.replace(/\D/g,'') || 15 ],
+      body: body || 'Status codes are divided into 5 classes. Remember the most common ones!'
+    });
+    state.matDraft = {slide:'Slide 15', body:''};
+    go('mat-panel');
+  }
+  else if(a==='commit-note'){
+    const kind = el.dataset.kind;
+    const name = ((document.getElementById('nnName')||{}).value || '').trim();
+    const body = ((document.getElementById('nnBody')||{}).value || '').trim();
+    const sel  = state.selText;
+    if(kind==='link' || name || body){
+      data.textNotes.push({
+        id:'t'+Date.now(),
+        nm: name || (kind==='link' ? 'Заметка: '+sel.text : 'New note'),
+        created:'just now',
+        slide: kind==='link' ? String(sel.slide) : '1',
+        body: body || (kind==='link' ? 'Заметка к фрагменту «'+sel.text+'».' : '—'),
+        link: kind==='link' ? sel.text : null,
+        ref: kind==='link' ? String(sel.slide) : '1',
+        slides: kind==='link' ? [sel.slide] : [1]
+      });
+      go('notes');            // показываем список — новая заметка уже в нём
+    } else {
+      go('presentation');     // пустую заметку не создаём
+    }
+  }
+}
+
+document.addEventListener('click', e=>{
+  const act = e.target.closest('[data-act]');
+  if(act){ handleAct(act); return; }
+  const nav = e.target.closest('[data-nav]');
+  if(nav){ applyPreset(nav.dataset.preset); go(nav.dataset.nav, nav.dataset.param); return; }
+  const link = e.target.closest('[data-go]');
+  if(link){ go(link.dataset.go, link.dataset.param); }
+});
+
+document.addEventListener('keydown', e=>{
+  if((e.key==='Enter'||e.key===' ') && e.target.matches('.slide.pickable')){
+    e.preventDefault(); handleAct(e.target);
+  }
+});
+
+document.addEventListener('input', e=>{
+  const b = e.target.dataset.bind;
+  if(!b) return;
+  if(b==='nm' || b==='body'){
+    const n = noteById(e.target.dataset.type, e.target.dataset.id);
+    if(n) n[b] = e.target.value;
+  }
+  else if(b==='draft-slide'){ state.matDraft.slide = e.target.value; }
+  else if(b==='draft-body'){ state.matDraft.body = e.target.value; }
+  flashSaved();
+});
+
+buildMap();
+render();
+</script>
+</body>
+</html>
