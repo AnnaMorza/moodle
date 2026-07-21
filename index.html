@@ -533,8 +533,9 @@ function renderNoteEdit(){
     + toolbarFmt()
     + (ctx.type==='t' && n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
     + '<textarea class="fld" data-bind="body" data-type="'+ctx.type+'" data-id="'+n.id+'">'+n.body+'</textarea>'
+    + '<div class="saved show">'+I.check+' Saved automatically</div>' 
     + '<div class="grow"></div>'
-    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Save</button>';
+    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Back</button>';
 }
 
 function renderMatPanel(){
@@ -549,8 +550,9 @@ function renderMatNew(){
     + '<input class="fld" id="mnName" placeholder="Name...">'
     + toolbarFmt()
     + '<textarea id="mNote" class="fld" placeholder="Add a note..." data-bind="draft-body">'+state.matDraft.body+'</textarea>'
+    + '<div class="saved show">'+I.check+' Saved automatically</div>' 
     + '<div class="grow"></div>'
-    + '<button class="btn" data-act="add-mat">Save</button>';
+    + '<button class="btn" data-act="add-mat">Back</button>';
 }
 
 function editorScreen(kind){ // kind: 'plain' | 'link'
@@ -562,6 +564,7 @@ function editorScreen(kind){ // kind: 'plain' | 'link'
         ? '<span class="linkchip">'+I.chain+' '+sel.text+'</span>'
         : '<span class="linkchip empty">'+I.chain+' No linked text</span>')
     + '<textarea class="fld" id="nnBody" placeholder="Add a note..."></textarea>'
+    + '<div class="saved show">'+I.check+' Saved automatically</div>'
     + '<div class="grow"></div>'
     + '<button class="btn" data-act="commit-note" data-kind="'+kind+'">Save</button>';
 }
