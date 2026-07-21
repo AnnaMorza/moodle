@@ -445,7 +445,7 @@ function renderMatPanel(){
 function renderMatNew(){
   const opts = ['Slide 3','Slide 5','Slide 7','Slide 9','Slide 11','Slide 13','Slide 15','Slide 18','Slide 21','Slide 23']
     .map(s=>'<option'+(s===state.matDraft.slide?' selected':'')+'>'+s+'</option>').join('');
-  return topbar('mat-panel','New material note',{sub:wkTitle()})
+  return topbar('presentation','New material note',{sub:wkTitle()})
     + '<label class="flabel" for="mSlides">Select slides</label>'
     + '<select id="mSlides" class="fld" data-bind="draft-slide">'+opts+'</select>'
     + '<label class="flabel" for="mNote">Note</label>'
@@ -454,7 +454,7 @@ function renderMatNew(){
     + '<div class="saved" id="saved">'+I.check+' Saved</div>'
     + '<div class="grow"></div>'
     + '<button class="btn" data-act="add-mat">Add new note</button>'
-    + '<button class="btn ghost" data-go="mat-panel">Back</button>';
+    + '<button class="btn ghost" data-go="presentation">Back</button>';
 }
 
 function editorScreen(kind){ // kind: 'plain' | 'link'
@@ -536,7 +536,7 @@ function buildMap(){
 /* ============ Router & actions ============ */
 function go(screen, param){
   if(!screens[screen]) return;
-  if(screen==='mat-view' && ['notes','mat-panel','course','favorites'].includes(state.screen)){
+  if(screen==='mat-view' && ['notes','mat-panel','course','favorites', 'presentation'].includes(state.screen)){
     state.matOrigin = state.screen;   // «назад» вернёт именно сюда
   }
   state.screen = screen;
@@ -624,7 +624,7 @@ function handleAct(el){
       body: body || 'Status codes are divided into 5 classes. Remember the most common ones!'
     });
     state.matDraft = {slide:'Slide 15', body:''};
-    go('mat-panel');
+    go('presentation');
   }
   else if(a==='commit-note'){
     const kind = el.dataset.kind;
