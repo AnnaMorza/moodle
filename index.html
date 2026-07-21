@@ -7,6 +7,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+
+
+.tool.disabled{cursor:pointer}
+.tool.disabled .nicon{background:#b9c4ba}
+.tool.disabled:hover{border-color:var(--line);background:#fff}
+
+.toast{
+  position:absolute; bottom:26px; left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--ink); color:#fff;
+  padding:10px 16px; border-radius:12px;
+  font-size:12.5px; font-weight:700; text-align:center;
+  max-width:calc(100% - 40px); box-shadow:var(--shadow);
+  opacity:0; pointer-events:none; z-index:50;
+  transition:opacity .2s ease, transform .2s ease;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
 :root{
   --canvas:#edf1ea;
   --panel:#ffffff;
@@ -64,6 +82,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 /* ---------- Stage & phone ---------- */
 .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-width:0}
 .phone{
+  position:relative;
   width:378px;height:min(790px,calc(100vh - 96px));
   background:var(--panel);
   border:1px solid #dee5db;
@@ -153,6 +172,7 @@ select.fld{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .meta .lines{flex:1;font-size:11.5px;color:var(--muted);font-weight:700;line-height:1.7}
 .viewbody{font-size:13px;line-height:1.6;font-weight:500}
 .linkchip{display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;background:var(--green-soft);color:var(--green-deep);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.linkchip.empty{background:var(--panel);border:1px dashed var(--line);color:var(--muted);text-decoration:none}
 .slideref{display:flex;align-items:center;gap:8px;background:var(--green-tint);border:1px solid var(--green-soft);color:var(--green-deep);border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700}
 .screen.tint .slideref{background:#fff}
 .saved{display:flex;align-items:center;gap:7px;color:var(--green-deep);font-size:12.5px;font-weight:800;visibility:hidden}
@@ -197,7 +217,10 @@ select.fld{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 <aside class="map" id="map"></aside>
 
 <main class="stage">
-  <div class="phone"><div class="screen" id="screen"></div></div>
+  <div class="phone">
+    <div class="screen" id="screen"></div>
+    <div class="toast" id="toast"></div>
+  </div>
   <div class="caption" id="caption"></div>
 </main>
 
@@ -254,7 +277,8 @@ const state = {
   pick:new Set(),
   editCtx:null,                                // {type:'t'|'m', id}
   selText:{text:'HTTP про протоколы', slide:2},// выделенный фрагмент на слайде
-  matOrigin:'notes',                           // откуда открыта material note
+  matOrigin:'notes',
+  noteOrigin:'notes',                           // откуда открыта material note
   matDraft:{slide:'Slide 15', body:''}
 };
 
@@ -320,9 +344,11 @@ function renderCourse(){
     const isW3 = w.id==='w3';
     const star = '<button class="star'+(state.favs.has(w.id)?' on':'')+'" data-act="star" data-id="'+w.id+'" aria-label="В избранное">'+I.star+'</button>';
     const main = '<button class="main" data-act="open-week" data-id="'+w.id+'"><span class="nm">'+w.nm+'</span><span class="dt">'+w.dt+'</span></button>';
+    
     const tail = isW3
-      ? '<button class="exp'+(state.expandW3?' open':'')+'" data-act="expand" aria-label="Заметки в материале">'+I.chevRsm+'</button>'
-      : I.chevR;
+  ? '<button class="exp'+(state.expandW3?' open':'')+'" data-act="expand" aria-label="Заметки в материале">'+I.chevRsm+'</button>'
+  : '<button class="icobtn" data-act="open-week" data-id="'+w.id+'" aria-label="Открыть материал">'+I.chevR+'</button>';
+    
     const nested = (isW3 && state.expandW3)
       ? '<div class="nested">'+ data.matNotes.map(n=>
           '<button class="nrow" data-go="mat-view" data-param="'+n.id+'">'
@@ -352,19 +378,19 @@ function renderFavorites(){
 }
 
 function renderPresentation(){
-  const marks = {2:'HTTP про протоколы', 4:'FTP команды'};
+  const marks = {2:'HTTP про протоколы', 4:'HTTP/FTP команды'};
   const slides = [1,2,3,4,5,6].map(n=>slideThumb(n,{mark:marks[n]})).join('');
   return topbar('course', wkTitleBr())
     + '<div class="toolrow">'
-    +   '<button class="tool" data-go="note-new" title="Текстовая заметка"><span class="nicon">T</span></button>'
+    +   '<button class="tool disabled" data-act="text-note-hint" title="Текстовая заметка"><span class="nicon">T</span></button>'
     +   '<button class="tool" data-go="mat-new" title="Заметка к слайдам"><span class="nicon">M</span></button>'
-    +   '<button class="toolchip" data-go="note-new">'+I.pencil+' Presentation</button>'
     +   '<button class="linkbtn" data-go="notes">All notes</button>'
     + '</div>'
-    + '<div class="tip">Выделение текста: нажмите на подсвеченный фрагмент на слайде 2 или 4 — создастся заметка со ссылкой на этот текст.</div>'
+    + '<div class="tip">Выделите определенный текст чтобы добаввить заметку по тексту</div>'
     + '<div class="slides">'+slides+'</div>'
     + '<div class="pagecount">24</div>';
 }
+
 
 function renderNotes(){
   const tOpen = state.groups.text, mOpen = state.groups.mat;
@@ -391,11 +417,10 @@ function metaBlock(n, type){
 function renderNoteView(){
   const n = noteById('t', state.param) || data.textNotes[0];
   state.param = n.id;
-  return topbar('notes', n.nm)
+  return topbar(state.noteOrigin || 'notes', n.nm)
     + metaBlock(n,'t')
-    + '<div class="card viewbody">'+n.body+'</div>'
     + (n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
-    + '<div class="slideref">'+I.check+' Слайды с номерами '+n.ref+'</div>';
+    + '<div class="card viewbody">'+n.body+'</div>';
 }
 
 function renderMatView(){
@@ -403,8 +428,7 @@ function renderMatView(){
   state.param = n.id;
   return topbar(state.matOrigin || 'notes', n.nm)
     + metaBlock(n,'m')
-    + '<div class="card viewbody">'+n.body+'</div>'
-    + '<div class="slideref">'+I.check+' Слайды с номерами '+n.slides.join(', ')+'</div>';
+    + '<div class="card viewbody">'+n.body+'</div>';
 }
 
 function renderSlidePicker(){
@@ -422,15 +446,12 @@ function renderNoteEdit(){
   const ctx = state.editCtx; if(!ctx) return renderNotes();
   const n = noteById(ctx.type, ctx.id);
   const backGo = ctx.type==='t' ? 'note-view' : 'mat-view';
-  const ref = n.slides.join(', ');
   return topbar(backGo, n.nm, {backParam:n.id, sub: ctx.type==='m' ? wkTitle() : ''})
     + '<input class="fld" placeholder="Name..." value="'+n.nm.replace(/"/g,'&quot;')+'" data-bind="nm" data-type="'+ctx.type+'" data-id="'+n.id+'">'
     + toolbarFmt()
-    + '<textarea class="fld" data-bind="body" data-type="'+ctx.type+'" data-id="'+n.id+'">'+n.body+'</textarea>'
     + (ctx.type==='t' && n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
-    + '<button class="slideref" data-act="pick-open" style="width:100%;cursor:pointer">'+I.check
-    +   ' Слайды с номерами '+ref+'<span style="margin-left:auto;text-decoration:underline;font-weight:800">изменить</span></button>'
-    + '<div class="saved" id="saved">'+I.check+' Saved</div>'
+    + '<textarea class="fld" data-bind="body" data-type="'+ctx.type+'" data-id="'+n.id+'">'+n.body+'</textarea>'
+    + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
     + '<div class="grow"></div>'
     + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Back</button>';
 }
@@ -443,35 +464,28 @@ function renderMatPanel(){
 }
 
 function renderMatNew(){
-  const opts = ['Slide 3','Slide 5','Slide 7','Slide 9','Slide 11','Slide 13','Slide 15','Slide 18','Slide 21','Slide 23']
-    .map(s=>'<option'+(s===state.matDraft.slide?' selected':'')+'>'+s+'</option>').join('');
   return topbar('presentation','New material note',{sub:wkTitle()})
-    + '<label class="flabel" for="mSlides">Select slides</label>'
-    + '<select id="mSlides" class="fld" data-bind="draft-slide">'+opts+'</select>'
-    + '<label class="flabel" for="mNote">Note</label>'
+    + '<input class="fld" id="mnName" placeholder="Name...">'
     + toolbarFmt()
-    + '<textarea id="mNote" class="fld" placeholder="Status codes are divided into 5 classes. Remember the most common ones!" data-bind="draft-body">'+state.matDraft.body+'</textarea>'
-    + '<div class="saved" id="saved">'+I.check+' Saved</div>'
+    + '<textarea id="mNote" class="fld" placeholder="Add a note..." data-bind="draft-body">'+state.matDraft.body+'</textarea>'
+    + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
     + '<div class="grow"></div>'
-    + '<button class="btn" data-act="add-mat">Add new note</button>'
-    + '<button class="btn ghost" data-go="presentation">Back</button>';
+    + '<button class="btn" data-act="add-mat">Back</button>';
 }
 
 function editorScreen(kind){ // kind: 'plain' | 'link'
   const sel = state.selText;
-  return topbar('presentation','New note',{sub:wkTitle()})
+  return topbar('presentation','New text note',{sub:wkTitle()})
     + '<input class="fld" id="nnName" placeholder="Name...">'
     + toolbarFmt()
     + (kind==='link'
         ? '<span class="linkchip">'+I.chain+' '+sel.text+'</span>'
-          + '<div class="slideref">'+I.check+' Слайд '+sel.slide+'</div>'
-        : '')
+        : '<span class="linkchip empty">'+I.chain+' No linked text</span>')
     + '<textarea class="fld" id="nnBody" placeholder="Add a note..."></textarea>'
     + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
     + '<div class="grow"></div>'
     + '<button class="btn" data-act="commit-note" data-kind="'+kind+'">Back</button>';
 }
-
 /* ============ Registry ============ */
 const screens = {
   'course':       {cap:'Страница курса — избранное и материалы (★ у Week добавляет в Favorites)', render:renderCourse},
@@ -536,21 +550,30 @@ function buildMap(){
 /* ============ Router & actions ============ */
 function go(screen, param){
   if(!screens[screen]) return;
-  if(screen==='mat-view' && ['notes','mat-panel','course','favorites', 'presentation'].includes(state.screen)){
-    state.matOrigin = state.screen;   // «назад» вернёт именно сюда
+  if(screen==='mat-view' && ['notes','mat-panel','course','favorites','presentation'].includes(state.screen)){
+    state.matOrigin = state.screen;
+  }
+  if(screen==='note-view' && ['notes','mat-panel','course','favorites','presentation'].includes(state.screen)){
+    state.noteOrigin = state.screen;
   }
   state.screen = screen;
   if(param !== undefined) state.param = param;
-  render();
+  render(true);
 }
 
-function render(){
+function render(animate){
   const scr = screens[state.screen];
   const el = document.getElementById('screen');
   el.classList.toggle('tint', !!scr.tint);
+  const scrollPos = el.scrollTop;
   el.innerHTML = scr.render();
-  el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
-  el.scrollTop = 0;
+  if(animate){
+    el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+    el.scrollTop = 0;
+  } else {
+    el.classList.remove('enter');
+    el.scrollTop = scrollPos;
+  }
   document.getElementById('caption').textContent = scr.cap;
   document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active', b.dataset.nav===state.screen));
 }
@@ -572,6 +595,14 @@ function flashSaved(){
   flashSaved.tm = setTimeout(()=>s.classList.remove('show'), 1600);
 }
 
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast.tm);
+  showToast.tm = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
 function handleAct(el){
   const a = el.dataset.act;
   if(a==='star'){
@@ -582,9 +613,18 @@ function handleAct(el){
   else if(a==='expand'){ state.expandW3 = !state.expandW3; render(); }
   else if(a==='group'){ const g = el.dataset.g; state.groups[g] = !state.groups[g]; render(); }
   else if(a==='open-week'){ state.week = el.dataset.id; go('presentation'); }
+  else if(a==='text-note-hint'){
+    showToast('Сначала выделите нужный фрагмент текста на слайде — тогда можно будет добавить заметку');
+  }
   else if(a==='sel-text'){
-    state.selText = {text: el.dataset.text, slide: +el.dataset.slide};
-    go('note-link');
+    const text = el.dataset.text, slide = +el.dataset.slide;
+    const existing = data.textNotes.find(n => n.link === text);
+    if(existing){
+      go('note-view', existing.id);
+    } else {
+      state.selText = {text, slide};
+      go('note-link');
+    }
   }
   else if(a==='edit-start'){
     state.editCtx = {type: el.dataset.type, id: el.dataset.id};
@@ -615,17 +655,18 @@ function handleAct(el){
     go(type==='t' ? 'notes' : (state.matOrigin || 'notes'));
   }
   else if(a==='add-mat'){
+    const name = ((document.getElementById('mnName')||{}).value || '').trim();
     const body = state.matDraft.body.trim();
     data.matNotes.push({
       id:'m'+Date.now(),
-      nm: body ? (body.length>34 ? body.slice(0,34)+'…' : body) : 'New material note',
+      nm: name || (body ? (body.length>34 ? body.slice(0,34)+'…' : body) : 'New material note'),
       created:'just now',
       slides:[ +state.matDraft.slide.replace(/\D/g,'') || 15 ],
       body: body || 'Status codes are divided into 5 classes. Remember the most common ones!'
     });
     state.matDraft = {slide:'Slide 15', body:''};
     go('presentation');
-  }
+}
   else if(a==='commit-note'){
     const kind = el.dataset.kind;
     const name = ((document.getElementById('nnName')||{}).value || '').trim();
