@@ -7,24 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-
-
-.tool.disabled{cursor:pointer}
-.tool.disabled .nicon{background:#b9c4ba}
-.tool.disabled:hover{border-color:var(--line);background:#fff}
-
-.toast{
-  position:absolute; bottom:26px; left:50%;
-  transform:translateX(-50%) translateY(10px);
-  background:var(--ink); color:#fff;
-  padding:10px 16px; border-radius:12px;
-  font-size:12.5px; font-weight:700; text-align:center;
-  max-width:calc(100% - 40px); box-shadow:var(--shadow);
-  opacity:0; pointer-events:none; z-index:50;
-  transition:opacity .2s ease, transform .2s ease;
-}
-.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
-
 :root{
   --canvas:#edf1ea;
   --panel:#ffffff;
@@ -182,6 +164,9 @@ select.fld{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .tool{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;color:#5a655c}
 .tool:hover{border-color:var(--green);color:var(--green-deep);background:var(--green-tint)}
 .tool .nicon{width:19px;height:19px;font-size:10px;border-radius:6px}
+.tool.disabled{cursor:pointer}
+.tool.disabled .nicon{background:#b9c4ba}
+.tool.disabled:hover{border-color:var(--line);background:#fff}
 .toolchip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:10px;background:var(--green-soft);color:var(--green-deep);font-size:12px;font-weight:800}
 .toolchip:hover{background:#d8ecd9}
 .linkbtn{margin-left:auto;font-size:12px;font-weight:800;color:var(--green-deep);text-decoration:underline;text-underline-offset:2px;padding:6px}
@@ -205,6 +190,40 @@ select.fld{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 .center{text-align:center}
 .footer-note{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);justify-content:space-between}
 
+/* ---------- Slide reader (реальный выделяемый текст) ---------- */
+.slideCard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(46,73,50,.05)}
+.slideCard-head{display:flex}
+.slideCard-tag{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--green-deep);background:var(--green-soft);border-radius:7px;padding:3px 8px}
+.slideCard-title{font-size:14.5px;font-weight:800;line-height:1.35}
+.slideText{position:relative;font-size:13px;line-height:1.65;font-weight:500;color:#3a423b;-webkit-user-select:text;user-select:text}
+.slideText p{margin-bottom:8px}
+.slideText p:last-child{margin-bottom:0}
+.taglink{color:var(--green-deep);font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer;background:var(--green-soft);border-radius:4px;padding:0 2px}
+.taglink:hover{background:#d8ecd9}
+
+.selPopup{position:absolute;left:0;top:0;transform:translateY(6px);opacity:0;pointer-events:none;transition:opacity .12s ease, transform .12s ease;z-index:10}
+.selPopup.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+.selPopup button{display:flex;align-items:center;gap:5px;background:var(--ink);color:#fff;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:var(--shadow)}
+.selPopup button:hover{background:var(--green-deep)}
+
+.slideNav{display:flex;align-items:center;justify-content:center;gap:14px}
+.navbtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;color:#5a655c}
+.navbtn:hover{border-color:var(--green);color:var(--green-deep);background:var(--green-tint)}
+.navbtn:disabled{opacity:.35;cursor:default}
+.navbtn:disabled:hover{border-color:var(--line);color:#5a655c;background:#fff}
+.slideNav-count{font-size:12px;font-weight:800;color:var(--muted);min-width:52px;text-align:center}
+
+.toast{
+  position:absolute; bottom:26px; left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--ink); color:#fff;
+  padding:10px 16px; border-radius:12px;
+  font-size:12.5px; font-weight:700; text-align:center;
+  max-width:calc(100% - 40px); box-shadow:var(--shadow);
+  opacity:0; pointer-events:none; z-index:50;
+  transition:opacity .2s ease, transform .2s ease;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
 @media (max-width:860px){
   body{flex-direction:column;overflow:auto;align-items:center}
   .map{width:100%;max-width:520px;max-height:34vh}
@@ -268,6 +287,57 @@ const data = {
   ]
 };
 
+/* ============ Содержимое слайдов (для реального выделения текста) ============ */
+const slideBank = {
+  1:{title:'Introduction to HTTP', paragraphs:[
+    'HTTP (HyperText Transfer Protocol) — это протокол прикладного уровня, на котором построена современная всемирная паутина.',
+    'В этой лекции мы рассмотрим базовые принципы работы протокола и его место в стеке сетевых технологий.'
+  ]},
+  2:{title:'HTTP и модель запрос-ответ', paragraphs:[
+    'Клиент отправляет запрос серверу, а сервер возвращает ответ — на этом строится вся модель взаимодействия.',
+    'Разберём подробнее HTTP про протоколы и их роль в передаче данных между клиентом и сервером.'
+  ]},
+  3:{title:'Заголовки и статус-коды', paragraphs:[
+    'Каждый HTTP-запрос и ответ сопровождается набором заголовков, которые описывают метаданные передачи.',
+    'Статус-коды делятся на пять классов и позволяют клиенту понять результат обработки запроса.'
+  ]},
+  4:{title:'HTTP и FTP: сравнение команд', paragraphs:[
+    'Рассмотрим ключевые HTTP/FTP команды, которые используются при работе с сервером.',
+    'В отличие от HTTP, протокол FTP использует отдельное управляющее соединение для передачи команд.'
+  ]},
+  5:{title:'Установление соединения', paragraphs:[
+    'Перед обменом данными клиент и сервер устанавливают TCP-соединение — это происходит до отправки самого запроса.',
+    'После завершения передачи соединение может быть закрыто или переиспользовано в зависимости от версии протокола.'
+  ]},
+  6:{title:'Практика: работа с сервером', paragraphs:[
+    'На практике важно понимать, как настраивается сервер и какие права доступа применяются к файлам.',
+    'В следующих лекциях мы разберём конкретные примеры конфигурации на реальном сервере.'
+  ]}
+};
+function getSlideContent(n){
+  if(slideBank[n]) return slideBank[n];
+  return {
+    title:'Slide '+n,
+    paragraphs:[
+      'Материал этого слайда будет добавлен позже.',
+      'Вы всё ещё можете выделить любой фрагмент текста и добавить к нему заметку.'
+    ]
+  };
+}
+function buildSlideParagraphs(paragraphs, slideN){
+  return paragraphs.map(p=>{
+    let html = p;
+    data.textNotes.forEach(note=>{
+      if(note.link && +note.slide === slideN && html.indexOf(note.link) !== -1){
+        html = html.split(note.link).join(
+          '<span class="taglink" data-act="sel-text" data-text="'+note.link.replace(/"/g,'&quot;')+'" data-slide="'+slideN+'">'+note.link+'</span>'
+        );
+      }
+    });
+    return '<p>'+html+'</p>';
+  }).join('');
+}
+
 const state = {
   screen:'course', param:null,
   week:'w3',                                   // открытая презентация
@@ -278,8 +348,10 @@ const state = {
   editCtx:null,                                // {type:'t'|'m', id}
   selText:{text:'HTTP про протоколы', slide:2},// выделенный фрагмент на слайде
   matOrigin:'notes',
-  noteOrigin:'notes',                           // откуда открыта material note
-  matDraft:{slide:'Slide 15', body:''}
+  noteOrigin:'notes',
+  matDraft:{slide:'Slide 15', body:''},
+  slideIndex:1,                                // текущий слайд в презентации
+  pendingSelection:null                        // {text, slide} — активное выделение мышью
 };
 
 const noteById = (type,id)=> (type==='t'?data.textNotes:data.matNotes).find(n=>n.id===id);
@@ -344,11 +416,11 @@ function renderCourse(){
     const isW3 = w.id==='w3';
     const star = '<button class="star'+(state.favs.has(w.id)?' on':'')+'" data-act="star" data-id="'+w.id+'" aria-label="В избранное">'+I.star+'</button>';
     const main = '<button class="main" data-act="open-week" data-id="'+w.id+'"><span class="nm">'+w.nm+'</span><span class="dt">'+w.dt+'</span></button>';
-    
+
     const tail = isW3
-  ? '<button class="exp'+(state.expandW3?' open':'')+'" data-act="expand" aria-label="Заметки в материале">'+I.chevRsm+'</button>'
-  : '<button class="icobtn" data-act="open-week" data-id="'+w.id+'" aria-label="Открыть материал">'+I.chevR+'</button>';
-    
+      ? '<button class="exp'+(state.expandW3?' open':'')+'" data-act="expand" aria-label="Заметки в материале">'+I.chevRsm+'</button>'
+      : '<button class="icobtn" data-act="open-week" data-id="'+w.id+'" aria-label="Открыть материал">'+I.chevR+'</button>';
+
     const nested = (isW3 && state.expandW3)
       ? '<div class="nested">'+ data.matNotes.map(n=>
           '<button class="nrow" data-go="mat-view" data-param="'+n.id+'">'
@@ -378,19 +450,30 @@ function renderFavorites(){
 }
 
 function renderPresentation(){
-  const marks = {2:'HTTP про протоколы', 4:'HTTP/FTP команды'};
-  const slides = [1,2,3,4,5,6].map(n=>slideThumb(n,{mark:marks[n]})).join('');
+  const n = state.slideIndex;
+  const content = getSlideContent(n);
+  const bodyHtml = buildSlideParagraphs(content.paragraphs, n);
   return topbar('course', wkTitleBr())
     + '<div class="toolrow">'
     +   '<button class="tool disabled" data-act="text-note-hint" title="Текстовая заметка"><span class="nicon">T</span></button>'
     +   '<button class="tool" data-go="mat-new" title="Заметка к слайдам"><span class="nicon">M</span></button>'
     +   '<button class="linkbtn" data-go="notes">All notes</button>'
     + '</div>'
-    + '<div class="tip">Выделите определенный текст чтобы добаввить заметку по тексту</div>'
-    + '<div class="slides">'+slides+'</div>'
-    + '<div class="pagecount">24</div>';
+    + '<div class="tip">Выделите текст на слайде, чтобы добавить заметку</div>'
+    + '<div class="slideCard">'
+    +   '<div class="slideCard-head"><span class="slideCard-tag">Slide '+n+'</span></div>'
+    +   '<div class="slideCard-title">'+content.title+'</div>'
+    +   '<div class="slideText" id="slideText" data-slide="'+n+'">'
+    +     bodyHtml
+    +     '<div class="selPopup" id="selPopup"><button data-act="add-selection-note">'+I.plus+' Заметка</button></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="slideNav">'
+    +   '<button class="navbtn" data-act="slide-prev"'+(n<=1?' disabled':'')+' aria-label="Предыдущий слайд">'+I.chevL+'</button>'
+    +   '<span class="slideNav-count">'+n+' / 24</span>'
+    +   '<button class="navbtn" data-act="slide-next"'+(n>=24?' disabled':'')+' aria-label="Следующий слайд">'+I.chevRsm+'</button>'
+    + '</div>';
 }
-
 
 function renderNotes(){
   const tOpen = state.groups.text, mOpen = state.groups.mat;
@@ -401,10 +484,9 @@ function renderNotes(){
     +   '<span class="nicon">T</span><span class="gt">Text notes ('+data.textNotes.length+')</span>'
     +   (tOpen?I.chevD:I.chevRsm) + '</button>' + tItems
     + '<button class="ghead" data-act="group" data-g="mat" aria-expanded="'+mOpen+'">'
-    +   '<span class="nicon">M</span><span class="gt">Material notes ('+data.matNotes.length+') <span class="star on" style="padding:0">'+I.star+'</span></span>'
+    +   '<span class="nicon">M</span><span class="gt">Material notes ('+data.matNotes.length+')</span>'
     +   (mOpen?I.chevD:I.chevRsm) + '</button>' + mItems
-    + '<div class="grow"></div>'
-    + '<button class="btn" data-go="note-new">Add new note</button>';
+    + '<div class="grow"></div>';
 }
 
 function metaBlock(n, type){
@@ -451,9 +533,8 @@ function renderNoteEdit(){
     + toolbarFmt()
     + (ctx.type==='t' && n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
     + '<textarea class="fld" data-bind="body" data-type="'+ctx.type+'" data-id="'+n.id+'">'+n.body+'</textarea>'
-    + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
     + '<div class="grow"></div>'
-    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Back</button>';
+    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Save</button>';
 }
 
 function renderMatPanel(){
@@ -468,9 +549,8 @@ function renderMatNew(){
     + '<input class="fld" id="mnName" placeholder="Name...">'
     + toolbarFmt()
     + '<textarea id="mNote" class="fld" placeholder="Add a note..." data-bind="draft-body">'+state.matDraft.body+'</textarea>'
-    + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
     + '<div class="grow"></div>'
-    + '<button class="btn" data-act="add-mat">Back</button>';
+    + '<button class="btn" data-act="add-mat">Save</button>';
 }
 
 function editorScreen(kind){ // kind: 'plain' | 'link'
@@ -482,22 +562,22 @@ function editorScreen(kind){ // kind: 'plain' | 'link'
         ? '<span class="linkchip">'+I.chain+' '+sel.text+'</span>'
         : '<span class="linkchip empty">'+I.chain+' No linked text</span>')
     + '<textarea class="fld" id="nnBody" placeholder="Add a note..."></textarea>'
-    + '<div class="footer-note"><span>Save automatically</span><span class="saved show" style="visibility:visible">'+I.check+'</span></div>'
     + '<div class="grow"></div>'
-    + '<button class="btn" data-act="commit-note" data-kind="'+kind+'">Back</button>';
+    + '<button class="btn" data-act="commit-note" data-kind="'+kind+'">Save</button>';
 }
+
 /* ============ Registry ============ */
 const screens = {
   'course':       {cap:'Страница курса — избранное и материалы (★ у Week добавляет в Favorites)', render:renderCourse},
   'favorites':    {cap:'Просмотр избранных — All favorites', render:renderFavorites},
-  'presentation': {cap:'Материал (слайды). T — текстовая заметка, M — к слайдам; клик по подсвеченному тексту создаёт заметку-ссылку', render:renderPresentation},
+  'presentation': {cap:'Материал (слайды). Выделите текст мышью — появится кнопка «+ Заметка»', render:renderPresentation},
   'notes':        {cap:'Все заметки материала — Text notes и Material notes', render:renderNotes},
   'note-view':    {cap:'Текстовая заметка — просмотр (карандаш открывает редактор)', render:renderNoteView},
   'mat-view':     {cap:'Заметка к материалу — «назад» вернёт туда, откуда открыли', render:renderMatView},
   'slide-picker': {cap:'Выбор слайдов — открывается из редактора по кнопке «изменить»', render:renderSlidePicker, tint:true},
-  'note-edit':    {cap:'Редактирование заметки — автосохранение (✓ Saved), слайды меняются по «изменить»', render:renderNoteEdit, tint:true},
+  'note-edit':    {cap:'Редактирование заметки — автосохранение (✓ Saved)', render:renderNoteEdit, tint:true},
   'mat-panel':    {cap:'Material notes — панель заметок к материалу', render:renderMatPanel},
-  'mat-new':      {cap:'New material note — выбор слайда и текст заметки', render:renderMatNew},
+  'mat-new':      {cap:'New material note — текст заметки', render:renderMatNew},
   'note-new':     {cap:'Заметка по самой презентации — New note', render:()=>editorScreen('plain')},
   'note-link':    {cap:'Заметка со ссылкой на выделенный текст', render:()=>editorScreen('link')}
 };
@@ -582,8 +662,8 @@ function applyPreset(p){
   if(p==='first'){ state.favs.clear(); state.expandW3=false; }
   if(p==='favs'){ state.favs = new Set(['w1','w3']); state.expandW3=false; }
   if(p==='favnotes'){ state.favs = new Set(['w1','w3']); state.expandW3=true; }
-  if(p==='w3'){ state.week='w3'; }
-  if(p==='seltext'){ state.week='w3'; state.selText={text:'HTTP про протоколы', slide:2}; }
+  if(p==='w3'){ state.week='w3'; state.slideIndex=1; }
+  if(p==='seltext'){ state.week='w3'; state.slideIndex=2; state.selText={text:'HTTP про протоколы', slide:2}; }
   if(p==='edit-t1'){ state.week='w3'; state.editCtx={type:'t', id:'t1'}; state.param='t1'; }
 }
 
@@ -595,8 +675,47 @@ function flashSaved(){
   flashSaved.tm = setTimeout(()=>s.classList.remove('show'), 1600);
 }
 
+/* ============ Выделение текста на слайде (мышью) ============ */
+function hideSelPopup(){
+  const popup = document.getElementById('selPopup');
+  if(popup) popup.classList.remove('show');
+  state.pendingSelection = null;
+}
+
+function handleTextSelection(){
+  if(state.screen !== 'presentation') return;
+  const container = document.getElementById('slideText');
+  const popup = document.getElementById('selPopup');
+  if(!container || !popup) return;
+
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed || sel.rangeCount===0){ hideSelPopup(); return; }
+
+  const range = sel.getRangeAt(0);
+  if(!container.contains(range.commonAncestorContainer)){ hideSelPopup(); return; }
+
+  const text = sel.toString().trim();
+  if(!text){ hideSelPopup(); return; }
+
+  const rect = range.getBoundingClientRect();
+  const contRect = container.getBoundingClientRect();
+  const popupWidth = 108;
+
+  let left = rect.left - contRect.left + (rect.width/2) - (popupWidth/2);
+  left = Math.max(0, Math.min(left, contRect.width - popupWidth));
+  let top = rect.top - contRect.top - 44;
+  if(top < 0) top = rect.bottom - contRect.top + 8;
+
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  popup.classList.add('show');
+
+  state.pendingSelection = { text, slide: +container.dataset.slide };
+}
+
 function showToast(msg){
   const t = document.getElementById('toast');
+  if(!t) return;
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(showToast.tm);
@@ -612,9 +731,29 @@ function handleAct(el){
   }
   else if(a==='expand'){ state.expandW3 = !state.expandW3; render(); }
   else if(a==='group'){ const g = el.dataset.g; state.groups[g] = !state.groups[g]; render(); }
-  else if(a==='open-week'){ state.week = el.dataset.id; go('presentation'); }
+  else if(a==='open-week'){ state.week = el.dataset.id; state.slideIndex = 1; go('presentation'); }
   else if(a==='text-note-hint'){
     showToast('Сначала выделите нужный фрагмент текста на слайде — тогда можно будет добавить заметку');
+  }
+  else if(a==='slide-prev'){
+    if(state.slideIndex>1){ state.slideIndex--; hideSelPopup(); render(true); }
+  }
+  else if(a==='slide-next'){
+    if(state.slideIndex<24){ state.slideIndex++; hideSelPopup(); render(true); }
+  }
+  else if(a==='add-selection-note'){
+    const sel = state.pendingSelection;
+    if(!sel || !sel.text) return;
+    const text = sel.text, slide = sel.slide;
+    hideSelPopup();
+    window.getSelection().removeAllRanges();
+    const existing = data.textNotes.find(n => n.link === text);
+    if(existing){
+      go('note-view', existing.id);
+    } else {
+      state.selText = {text, slide};
+      go('note-link');
+    }
   }
   else if(a==='sel-text'){
     const text = el.dataset.text, slide = +el.dataset.slide;
@@ -628,7 +767,7 @@ function handleAct(el){
   }
   else if(a==='edit-start'){
     state.editCtx = {type: el.dataset.type, id: el.dataset.id};
-    go('note-edit');                       // сразу редактор, без страницы выбора слайдов
+    go('note-edit');
   }
   else if(a==='pick-open'){
     const {type,id} = state.editCtx;
@@ -666,7 +805,7 @@ function handleAct(el){
     });
     state.matDraft = {slide:'Slide 15', body:''};
     go('presentation');
-}
+  }
   else if(a==='commit-note'){
     const kind = el.dataset.kind;
     const name = ((document.getElementById('nnName')||{}).value || '').trim();
@@ -683,7 +822,7 @@ function handleAct(el){
         ref: kind==='link' ? String(sel.slide) : '1',
         slides: kind==='link' ? [sel.slide] : [1]
       });
-      go('notes');            // показываем список — новая заметка уже в нём
+      go('presentation');            // показываем список — новая заметка уже в нём
     } else {
       go('presentation');     // пустую заметку не создаём
     }
@@ -716,6 +855,13 @@ document.addEventListener('input', e=>{
   else if(b==='draft-body'){ state.matDraft.body = e.target.value; }
   flashSaved();
 });
+
+/* Не даём браузеру сбросить выделение при клике по кнопке «+ Заметка» */
+document.addEventListener('mousedown', e=>{
+  if(e.target.closest('#selPopup')) e.preventDefault();
+});
+document.addEventListener('mouseup', handleTextSelection);
+document.addEventListener('touchend', handleTextSelection);
 
 buildMap();
 render();
