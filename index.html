@@ -271,12 +271,7 @@ const data = {
     {id:'w4', nm:'Week 4', dt:'10 February 2024', title:'Lecture Week 4 (Part I): FTP in Practice'}
   ],
   textNotes: [
-    {id:'t1', nm:'Connection establishment in HTTP', created:'2 days ago', slide:'7',
-     body:'The HTTP protocol is connectionless, but it uses TCP as the transport protocol.',
-     link:'HTTP про протоколы', ref:'15, 17, 19', slides:[15,17,19]},
-    {id:'t2', nm:'HTTP/FTP Commands', created:'3 days ago', slide:'12',
-     body:'Основные команды: GET, POST, PUT / USER, PASS, RETR, STOR.',
-     link:'HTTP/FTP команды', ref:'15, 17, 19', slides:[15,17,19]}
+    
   ],
   matNotes: [
     {id:'m1', nm:'Про конфигурирование сервера…', created:'3 days ago', slides:[3,5,9],
@@ -460,7 +455,7 @@ function renderPresentation(){
     +   '<button class="tool" data-go="mat-new" title="Заметка к слайдам"><span class="nicon">M</span></button>'
     +   '<button class="linkbtn" data-go="notes">All notes</button>'
     + '</div>'
-    + '<div class="tip">Выделите текст на слайде, чтобы добавить заметку</div>'
+    + '<div class="tip">Выделите текст на слайде, чтобы добавить текстовую заметку</div>'
     + '<div class="slideCard">'
     +   '<div class="slideCard-head"><span class="slideCard-tag">Slide '+n+'</span></div>'
     +   '<div class="slideCard-title">'+content.title+'</div>'
@@ -534,9 +529,8 @@ function renderNoteEdit(){
     + toolbarFmt()
     + (ctx.type==='t' && n.link ? '<span class="linkchip">'+I.chain+' '+n.link+'</span>' : '')
     + '<textarea class="fld" data-bind="body" data-type="'+ctx.type+'" data-id="'+n.id+'">'+n.body+'</textarea>'
-    + '<div class="saved show">'+I.check+' Saved automatically</div>' 
     + '<div class="grow"></div>'
-    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Back</button>';
+    + '<button class="btn" data-go="'+backGo+'" data-param="'+n.id+'">Save</button>';
 }
 
 function renderMatPanel(){
@@ -551,9 +545,8 @@ function renderMatNew(){
     + '<input class="fld" id="mnName" placeholder="Name...">'
     + toolbarFmt()
     + '<textarea id="mNote" class="fld" placeholder="Add a note..." data-bind="draft-body">'+state.matDraft.body+'</textarea>'
-    + '<div class="saved show">'+I.check+' Saved automatically</div>' 
     + '<div class="grow"></div>'
-    + '<button class="btn" data-act="add-mat">Back</button>';
+    + '<button class="btn" data-act="add-mat">Save</button>';
 }
 
 function editorScreen(kind){ // kind: 'plain' | 'link'
@@ -565,7 +558,6 @@ function editorScreen(kind){ // kind: 'plain' | 'link'
         ? '<span class="linkchip">'+I.chain+' '+sel.text+'</span>'
         : '<span class="linkchip empty">'+I.chain+' No linked text</span>')
     + '<textarea class="fld" id="nnBody" placeholder="Add a note..."></textarea>'
-    + '<div class="saved show">'+I.check+' Saved automatically</div>'
     + '<div class="grow"></div>'
     + '<button class="btn" data-act="commit-note" data-kind="'+kind+'">Save</button>';
 }
@@ -737,7 +729,7 @@ function handleAct(el){
   else if(a==='group'){ const g = el.dataset.g; state.groups[g] = !state.groups[g]; render(); }
   else if(a==='open-week'){ state.week = el.dataset.id; state.slideIndex = 1; go('presentation'); }
   else if(a==='text-note-hint'){
-    showToast('Сначала выделите нужный фрагмент текста на слайде — тогда можно будет добавить заметку');
+    showToast('Выделите текст на слайде, чтобы добавить текстовую заметку');
   }
   else if(a==='slide-prev'){
     if(state.slideIndex>1){ state.slideIndex--; hideSelPopup(); render(true); }
